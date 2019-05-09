@@ -1,7 +1,9 @@
-var EResult = require('../enums/EResult.js');
-var EOSType = require('../enums/EOSType.js');
-var SteamID = require('steamid');
-var Crypto = require('crypto');
+const Crypto = require('crypto');
+const OS = require('os');
+const SteamID = require('steamid');
+
+const EOSType = require('../enums/EOSType.js');
+const EResult = require('../enums/EResult.js');
 
 /**
  * If the input isn't already a SteamID object, converts it into one and returns it
@@ -10,7 +12,7 @@ var Crypto = require('crypto');
  */
 exports.steamID = function(input) {
 	if (typeof input !== 'string') {
-		var keys = Object.keys(input);
+		let keys = Object.keys(input);
 		if (keys.indexOf('universe') != -1 && keys.indexOf('type') != -1 && keys.indexOf('instance') != -1 && keys.indexOf('accountid') != -1 && keys.indexOf('isValid') != -1) {
 			return input; // Looks like it's already a SteamID
 		}
@@ -22,39 +24,19 @@ exports.steamID = function(input) {
 };
 
 /**
- * Convert an IP in integer notation to dotted-decimal notation
- * @param {int} input
- * @returns {string}
- */
-exports.ipIntToString = function(input) {
-	return ((input >> 24) & 0xFF) + "." + ((input >> 16) & 0xFF) + "." + ((input >> 8) & 0xFF) + "." + (input & 0xFF);
-};
-
-/**
- * Convert an IP in dotted-decimal notation to integer notation
- * @param {string} input
- * @returns {int}
- */
-exports.ipStringToInt = function(input) {
-	var parts = input.split('.');
-	return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
-};
-
-/**
  * Get an machine ID for internal use (not sent to Steam)
  * @returns {string}
  */
 exports.getInternalMachineID = function() {
 	// Build our machine ID off of hostname, memory, and CPU data
-	var os = require('os');
-	var cpus = os.cpus().map(function(cpu) {
+	let cpus = OS.cpus().map(function(cpu) {
 		return cpu.model;
 	});
 
 	cpus.sort();
 
-	var id = os.hostname() + os.totalmem() + cpus.join('');
-	var hash = Crypto.createHash('md5');
+	let id = OS.hostname() + OS.totalmem() + cpus.join('');
+	let hash = Crypto.createHash('md5');
 	hash.update(id);
 	return hash.digest('hex');
 };
@@ -70,7 +52,7 @@ exports.eresultError = function(eresult) {
 		return null;
 	}
 
-	var err = new Error(EResult[eresult] || ("Error " + eresult));
+	let err = new Error(EResult[eresult] || ("Error " + eresult));
 	err.eresult = eresult;
 	return err;
 };
@@ -79,10 +61,9 @@ exports.eresultError = function(eresult) {
  * @return {EOSType}
  */
 exports.getOsType = function() {
-	var Os = require('os');
-	switch (Os.platform()) {
+	switch (OS.platform()) {
 		case 'darwin':
-			var match = Os.release().match(/Darwin Kernel Version (\d+)\.(\d+)\.(\d+)/);
+			let match = OS.release().match(/Darwin Kernel Version (\d+)\.(\d+)\.(\d+)/);
 			if (!match) {
 				return EOSType.MacOSUnknown;
 			}
@@ -111,7 +92,7 @@ exports.getOsType = function() {
 
 		case 'win32':
 			// http://prajwaldesai.com/windows-operating-system-version-numbers/
-			var verParts = Os.release().split('.');
+			let verParts = OS.release().split('.');
 			if (verParts.length < 3) {
 				return EOSType.WinUnknown;
 			}
@@ -177,4 +158,9 @@ exports.getOsType = function() {
 		default:
 			return EOSType.LinuxUnknown;
 	}
+};
+
+exports.fixVdfArray = function(arr) {
+	arr.length = Object.keys(arr).length;
+	return Array.prototype.slice.call(arr);
 };

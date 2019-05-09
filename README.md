@@ -1,30 +1,49 @@
 # SteamUser
-### A handler module for node-steam v1.0.0 and greater
+### Allows interaction with the Steam network via the Steam client protocol
 [![npm version](https://img.shields.io/npm/v/steam-user.svg)](https://npmjs.com/package/steam-user)
 [![npm downloads](https://img.shields.io/npm/dm/steam-user.svg)](https://npmjs.com/package/steam-user)
 [![dependencies](https://img.shields.io/david/DoctorMcKay/node-steam-user.svg)](https://david-dm.org/DoctorMcKay/node-steam-user)
 [![license](https://img.shields.io/npm/l/steam-user.svg)](https://github.com/DoctorMcKay/node-steam-user/blob/master/LICENSE)
 [![paypal](https://img.shields.io/badge/paypal-donate-yellow.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=N36YVAT42CZ4G&item_name=node%2dsteam%2duser&currency_code=USD)
 
-SteamUser is a handler module for [node-steam](https://github.com/seishun/node-steam) version 1.0.0 or greater.
-It also works with [node-steam-client](https://github.com/DoctorMcKay/node-steam-client).
-
-It's designed to be a self-contained module which provides all the functionality expected of a Steam user client.
+SteamUser allows you to communicate with the Steam servers in the same manner as a proper Steam client. It's designed to
+be a self-contained module which provides all the functionality expected of a Steam user client.
 
 [Subscribe to release announcements](https://github.com/DoctorMcKay/node-steam-user/releases.atom)
 
-This reports anonymous usage statistics to the author. [See here](https://github.com/DoctorMcKay/node-stats-reporter) for more information.
+This reports anonymous usage statistics to the author.
+[See here](https://github.com/DoctorMcKay/node-stats-reporter) for more information.
 
 **Have a question about the module or coding in general? *Do not create a GitHub issue.* GitHub issues are for feature requests and bug reports. Instead, post in the [dedicated forum](https://dev.doctormckay.com/forum/7-node-steam-user/). Such issues may be ignored!**
 
 # Contents
+- [Patterns](#patterns-)
 - [Enums](#enums-)
-- [Static Properties](#static-properties-)
 - [Static Methods](#static-methods-)
 - [Options](#options-)
 - [Properties](#properties-)
 - [Methods](#methods-)
 - [Events](#events-)
+
+# Patterns [^](#contents)
+
+There are a number of coding patterns that are repeated throughout `SteamUser`. **Please read this section in its
+entirety before starting work with `SteamUser`.**
+
+### Callbacks and Promises
+
+All methods listed in this document that accept a callback also return a `Promise`. You may use either callbacks or
+promises.
+
+Legacy callbacks return their data spanning across multiple arguments. All promises (which return any data at all)
+return a single object containing one or more properties. The names of these properties for legacy callbacks are the
+names of the callback arguments listed in this readme. Newer callbacks return a single object `response` argument, which
+is identical to the promise output for that method.
+
+Some methods indicate that their callback is required or optional. **You are never required to use callbacks over
+promises**, but if a callback is listed as optional then an unhandled promise rejection will not raise a warning/error.
+If a callback is listed as required and you neither supply a callback nor handle the promise rejection, then a
+promise rejection will raise a warning, and eventually a crash in a future Node.js release.
 
 # Enums [^](#contents)
 
@@ -36,20 +55,6 @@ All enums can be viewed [on GitHub](https://github.com/DoctorMcKay/node-steam-us
 Additionally, for convenience, the name of an enum value is available from any enum at the key identified by the enum
 value. For example, given an EResult of `88` you can translate it using `SteamUser.EResult[88]` which gives you
 the string `TwoFactorCodeMismatch`.
-
-# Static Properties [^](#contents)
-
-Static properties, or properties attached directly to `SteamUser`, are accessed on the root module and not on instantiated handler instances.
-
-### Steam
-
-The `node-steam-client` module installation used by `SteamUser`. You can use this in place of `require('steam-client')`
-if you'd like to avoid duplicate installations. As of v3.7.0, all enums are built into `SteamUser` so you probably won't
-need to use this. Example of using `EResult`:
-
-```js
-var ok = SteamUser.EResult.OK;
-```
 
 # Static Methods [^](#contents)
 
@@ -66,14 +71,6 @@ console.log(SteamUser.formatCurrency(12.34, SteamUser.ECurrencyCode.USD)); // $1
 console.log(SteamUser.formatCurrency(12345, SteamUser.ECurrencyCode.JPY)); // � 12345
 console.log(SteamUser.formatCurrency(123.45, SteamUser.ECurrencyCode.EUR)); // 123,45�
 ```
-
-### generateAuthCode(secret[, timeOffset])
-- `secret` - A `Buffer`, hex string, or base64 string containing your shared secret
-- `timeOffset` - The number of seconds by which your local clock is off from the Steam servers. Defaults to 0.
-
-Generates a 5-digit alphanumeric Steam Guard code for use with two-factor mobile authentication.
-
-**Deprecated and will be removed in a future release. Use [`steam-totp`](https://www.npmjs.com/package/steam-totp) instead.**
 
 # Options [^](#contents)
 
@@ -139,12 +136,6 @@ If on, a file named `sentry.bin` will be used for all accounts.
 
 Defaults to `false`.
 
-### promptSteamGuardCode
-
-A boolean which controls whether or not `SteamUser` will automatically prompt for Steam Guard codes when necessary from `stdin`.
-
-Defaults to `true`.
-
 ### machineIdType
 
 What kind of machine ID will SteamUser send to Steam when logging on? Should be a value from [`EMachineIDType`](https://github.com/DoctorMcKay/node-steam-user/blob/master/resources/EMachineIDType.js).
@@ -200,11 +191,65 @@ Added in 3.3.0.
 
 Defaults to `60000`.
 
+### additionalHeaders
+
+Set this to an object where keys are header names and values are header values, and those headers will be included
+with all HTTP requests `node-steam-user` makes to the Steam WebAPI.
+
+Added in 3.29.0.
+
+Defaults to `{}`.
+
+### localAddress
+
+Pass an IP here (as a string) to bind to that address, or `null` to let the OS decide.
+
+Added in 4.0.0.
+
+Defaults to `null`.
+
+### localPort
+
+Pass a port here to bind to that port, or `null` to let the OS decide.
+
+Added in 4.0.0.
+
+Defaults to `null`.
+
+### httpProxy
+
+Specify a URL here to use an HTTP proxy. For example, `http://user:pass@1.2.3.4:8081`
+
+Added in 4.0.0.
+
+### protocol
+
+A value from [`EConnectionProtocol`](https://github.com/DoctorMcKay/node-steam-user/blob/master/resources/EConnectionProtocol.js).
+
+Added in 4.0.0.
+
+Defaults to `Auto`.
+
+### language
+
+Set this to the full name of a language (e.g. "english" or "spanish") to localize specific things within steam-user.
+Currently this is only used to localize `rich_presence_string` in [`user`](#user) event data.
+
+Added in 4.0.0.
+
+Defaults to `english`.
+
+### webCompatibilityMode
+
+If you're having trouble connecting to Steam (e.g. through a firewall or a proxy), set this to `true`. When in web
+compatibility mode, connections to Steam will always use WebSockets (the `protocol` option will be ignored, and you
+will get a warning if you set it to `TCP`), and only Steam servers listening on port 443 will be considered.
+
+Added in 4.6.0.
+
+Defaults to `false`.
+
 # Properties [^](#contents)
-
-### client
-
-The `SteamClient` which is being used to communicate with Steam.
 
 ### steamID
 
@@ -212,7 +257,7 @@ The `SteamClient` which is being used to communicate with Steam.
 
 ### options
 
-An object containing options for this `SteamUser`. **Read-only**, use `setOption` or `setOptions` to change an option.
+An object containing options for this `SteamUser`. **Read-only**; use `setOption` or `setOptions` to change an option.
 
 ### publicIP
 
@@ -297,15 +342,21 @@ An array containing gifts and guest passes you've received but haven't accepted 
 
 ### users
 
-An object containing persona data about all Steam users we've encountered or requested data for. Key are 64-bit SteamIDs, values are identical to the objects received in the [`user`](#user) event.
+An object containing persona data about all Steam users we've encountered or requested data for. Key are 64-bit SteamIDs,
+and values are identical to the objects received in the [`user`](#user) event.
+
+This property may not be updated unless you set your instance to [online](#setpersonastate-name).
 
 ### groups
 
-An object containing information about all Steam groups we've encountered. Keys are 64-bit SteamIDs, values are identical to those received in the [`group`](#group) event.
+An object containing information about all Steam groups we've encountered. Keys are 64-bit SteamIDs, and values are
+identical to those received in the [`group`](#group) event.
+
+This property may not be updated unless you set your instance to [online](#setpersonastate-name).
 
 ### chats
 
-An object containing information about all chat rooms we're in. Keys are 64-bit SteamIDs, values are objects with this structure:
+An object containing information about all legacy chat rooms we're in. Keys are 64-bit SteamIDs, values are objects with this structure:
 - `name` - The name of the chat, or empty if it's a multi-user chat
 - `private` - `true` if only group members can join, `false` if it's open to everyone
 - `invisibleToFriends` - `true` if the chat is invisible to friends, `false` if visible (unsure what this means at this time)
@@ -321,11 +372,15 @@ An object whose keys are 64-bit SteamIDs, and whose values are values from the `
 
 When we get unfriended, instead of setting the value to `EFriendRelationship.None`, the key is deleted from the object entirely.
 
+This isn't populated after logon until [`friendsList`](#friendslist) is emitted.
+
 ### myGroups
 
 An object whose keys are 64-bit SteamIDs, and whose values are from the `EClanRelationship` enum. Therefore, you can deduce which groups you're in from this object.
 
 When we leave a group, instead of setting the value to `EClanRelationship.None`, the key is deleted from the object entirely.
+
+This isn't populated after logon until [`groupList`](#grouplist) is emitted.
 
 ### myFriendGroups
 
@@ -352,14 +407,32 @@ An object containing cached data about known apps and packages. Only useful if t
 - `apps` - An object whose keys are AppIDs and values are objects identical to those returned by `getProductInfo`
 - `packages` - An object whose keys are PackageIDs and values are objects identical to those returned by `getProductInfo`
 
+### chat
+
+**v4.0.0 or later is required to use this property**
+
+This is a `SteamChatRoomClient` instance. Use this object to chat with friends and chat rooms.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
+
+### packageName
+
+**v4.2.0 or later is required to use this property**
+
+Contains the name of this package. The value is always `"steam-user"`. This allows other modules to verify interoperability.
+
+### packageVersion
+
+**v4.2.0 or later is required to use this property**
+
+Contains the version of this page. For example, `"4.2.0"`. This allows other modules to verify interoperability.
+
 # Methods [^](#contents)
 
-### Constructor([client][, options])
-- `client` - An optional `SteamClient` to use to connect to Steam. If not provided, one will be created automatically.
+### Constructor(options)
 - `options` - An optional object containing zero or more [options](#options-) to set for this `SteamUser`.
 
-Constructs a new `SteamUser`. If you allow `SteamUser` to create its own `SteamClient`, then `SteamUser` will
-automatically save and reload the CM server list.
+Constructs a new `SteamUser`.
 
 ### setOption(option, value)
 - `option` - The name of the option to set
@@ -383,19 +456,75 @@ You can provide either an entire sentryfile (preferred), or a Buffer containing 
 ### logOn([details])
 - `details` - An object containing details for this logon
 	- `accountName` - If logging into a user account, the account's name
-	- `password` - If logging into an account without a login key, the account's password
+	- `password` - If logging into an account without a login key or a web logon token, the account's password
+	- `loginKey` - If logging into an account with a login key, this is the account's login key
+	- `webLogonToken` - If logging into an account with a [client logon token obtained from the web](https://github.com/DoctorMcKay/node-steamcommunity/wiki/SteamCommunity#getclientlogontokencallback), this is the token
+	- `steamID` - If logging into an account with a client logon token obtained from the web, this is your account's SteamID, as a string or a `SteamID` object
 	- `authCode` - If you have a Steam Guard email code, you can provide it here. You might not need to, see the [`steamGuard`](#steamguard) event. (Added in 1.9.0)
 	- `twoFactorCode` - If you have a Steam Guard mobile two-factor authentication code, you can provide it here. You might not need to, see the [`steamGuard`](#steamguard) event. (Added in 1.9.0)
-	- `loginKey` - If logging into an account with a login key, this is the account's login key
 	- `rememberPassword` - `true` if you want to get a login key which can be used in lieu of a password for subsequent logins. `false` or omitted otherwise.
-	- `logonID` - A number to identify this login. The official Steam client derives this from your machine's private IP (it's the `obfustucated_private_ip` field in `CMsgClientLogOn`). If you try to logon twice to the same account from the same public IP with the same `logonID`, the first session will be kicked with reason `SteamUser.EResult.LogonSessionReplaced`. Defaults to `0` if not specified.
+	- `logonID` - A 32-bit integer to identify this login. The official Steam client derives this from your machine's private IP (it's the `obfustucated_private_ip` field in `CMsgClientLogOn`). If you try to logon twice to the same account from the same public IP with the same `logonID`, the first session will be kicked with reason `SteamUser.EResult.LogonSessionReplaced`. Defaults to `0` if not specified.
 	- `machineName` - A string containing the name of this machine that you want to report to Steam. This will be displayed on steamcommunity.com when you view your games list (when logged in).
+	- `clientOS` - A [number](https://github.com/DoctorMcKay/node-steam-user/blob/master/enums/EOSType.js) to identify your client OS. Auto-detected if you don't provide one.
 	- `dontRememberMachine` - If you're providing an `authCode` but you don't want Steam to remember this sentryfile, pass `true` here.
 
-**v3.11.0 or later is required to use `machineName` or `dontRememberMachine`.**
+**v3.11.0 or later is required to use `machineName` or `dontRememberMachine`.**  
+**v4.3.0 or later is required to use `webLogonToken`.**
 
-Logs onto Steam. The `CMClient`/`SteamClient` should **not** be already logged on, although as of v3.4.0 it can be
-connected. Omit the `details` object if you wish to login to an anonymous user account.
+Logs onto Steam. Omit the `details` object if you wish to login to an anonymous user account.
+
+There are four ways to log onto Steam:
+
+- Anonymously
+	- Omit `accountName` (or the `details` object entirely) and you will log onto an anonymous user account.
+- Individually using account name and password
+	- These properties are required:
+		- `accountName`
+		- `password`
+	- These properties are optional:
+		- `authCode` - Specify if you are using an email Steam Guard code.
+		- `twoFactorCode` - Specify if you are using a TOTP two-factor code (required if your account has 2FA enabled).
+		- `rememberPassword` - Specify if you want to get a login key for subsequent logins.
+		- `logonID` - Defaults to 0 if not specified.
+		- `machineName` - Defaults to empty string if not specified.
+		- `clientOS` - Defaults to an auto-detected value if not specified.
+		- `dontRememberMachine` - Only relevant if using an `authCode`. Defaults to `false` if not specified.
+	- These properties must not be provided:
+		- `loginKey`
+		- `webLogonToken`
+		- `steamID`
+- Individually using account name and login key
+	- These properties are required:
+		- `accountName`
+		- `loginKey`
+	- These properties are optional:
+		- `rememberPassword` - Specify if you want to get a new login key for subsequent logins.
+		- `logonID` - Defaults to 0 if not specified.
+		- `machineName` - Defaults to empty string if not specified.
+		- `clientOS` - Defaults to an auto-detected value if not specified.
+	- These properties must not be provided:
+		- `password`
+		- `authCode`
+		- `twoFactorCode`
+		- `dontRememberMachine`
+		- `webLogonToken`
+		- `steamID`
+- Individually using account name and [client logon token obtained from the web](https://github.com/DoctorMcKay/node-steamcommunity/wiki/SteamCommunity#getclientlogontokencallback)
+	- **NOTE:** If you log on this way, [`webSession`](#websession) will **NOT** be emitted automatically, and you will need to use [`webLogOn()`](#weblogon) to get a web session.
+	- These properties are required:
+		- `accountName`
+		- `webLogonToken`
+		- `steamID`
+	- These properties must not be provided:
+		- `password`
+		- `authCode`
+		- `twoFactorCode`
+		- `dontRememberMachine`
+		- `loginKey`
+		- `rememberPassword`
+		- `logonID`
+		- `machineName`
+		- `clientOS` 
 
 ### logOff()
 
@@ -420,32 +549,15 @@ individual user), but you can call `webLogOn()` to create a new session if your 
 
 Listen for the [`webSession`](#websession) event to get your cookies.
 
-### createAccount(accountName, password, email, callback)
-- `accountName` - The username of your new account
-- `password` - The password for your new account
-- `email` - The contact email for your new account
-- `callback` - Called when the account is either created or an error occurs
-	- `result` - A value from `SteamUser.EResult`.
-		- `SteamUser.EResult.OK` if the account was created successfully
-		- `SteamUser.EResult.DuplicateName` if there is already an account with that username
-		- `SteamUser.EResult.IllegalPassword` if your password is too weak or otherwise bad
-		- or something else on another error
-	- `steamid` - If successful, this is a `SteamID` object containing the new account's SteamID
-
-Creates a new individual user Steam account. You must be logged on either anonymously or as an existing individual user
-to use this.
-
-**Currently it seems that Steam is not properly sending back the SteamID of the newly-created account. The `steamid`
-argument in the callback is currently `null`.**
-
 ### requestValidationEmail([callback])
 - `callback` - Optional. Called when a response is available
-	- `result` - A value from `SteamUser.EResult`. `SteamUser.EResult.OK` if the mail was sent successfully.
+	- `err` - An `Error` object on failure, or `null` on success
 
 Requests Steam to send you a validation email to your registered email address.
 
 ### enableTwoFactor(callback)
 - `callback` - Required. Called when the activation email has been sent.
+    - `err` - An `Error` object on failure, or `null` on success
 	- `response` - An object containing the response data
 
 **v2.0.0 or later is required to use this method**
@@ -473,23 +585,20 @@ Finishes the process of enabling TOTP two-factor authentication for your account
 
 **If TOTP two-factor authentication is enabled, a code will be required *on every login* unless a `loginKey` is used.**
 
-### disableTwoFactor(options, callback)
-
-#### This method no longer works. Attempts to call it will result in an Error being thrown. [Use node-steamcommunity instead.](https://mckay.media/UnsG7)
-
 ### getSteamGuardDetails(callback)
 - `callback` - A function to be called when the requested data is available
-	- `enabled` - `true` if Steam Guard is enabled for your account, `false` if not
-	- `enabledTime` - A `Date` object representing when Steam Guard was enabled for your account, or `null` if not available
-	- `machineTime` - A `Date` object representing when your current machine was authorized with Steam Guard, or `null` if not available
+    - `err` - An `Error` object on failure, or `null` on success
+	- `isSteamGuardEnabled` - `true` if Steam Guard is enabled for your account, `false` if not
+	- `timestampSteamGuardEnabled` - A `Date` object representing when Steam Guard was enabled for your account, or `null` if not available
+	- `timestampMachineSteamGuardEnabled` - A `Date` object representing when your current machine was authorized with Steam Guard, or `null` if not available
 	- `canTrade` - `true` if Steam Guard will allow you to trade, `false` if not. You may still be blocked by a trade ban or another trading limitation.
-	- `twoFactorTime` - A `Date` object representing when the Steam Guard Mobile Authenticator was enabled for your account, or `null` if not enabled
-	- `hasPhone` - `true` if your account has a linked phone, `false` if not
+	- `timestampTwoFactorEnabled` - A `Date` object representing when the Steam Guard Mobile Authenticator was enabled for your account, or `null` if not enabled
+	- `isPhoneVerified` - `true` if your account has a linked phone, `false` if not
 
-**v1.11.0 or later is required to use this method.
-v1.12.0 or later is required to use `canTrade`.
-v3.3.3 or later is required to use `twofactorTime`.
-v3.5.0 or later is required to use `hasPhone`.**
+**v1.11.0 or later is required to use this method.  
+v1.12.0 or later is required to use `canTrade`.  
+v3.3.3 or later is required to use `timestampTwoFactorEnabled`.  
+v3.5.0 or later is required to use `isPhoneVerified`.**
 
 Requests details about your account's Steam Guard status. This could be used to see if your account passes the Steam Guard trading requirements.
 
@@ -500,9 +609,10 @@ In order to trade, **all** of the following must be true:
 
 ### getCredentialChangeTimes(callback)
 - `callback` - A function to be called when the requested data is available
-    - `lastPasswordChange` - A `Date` object representing when your password was last changed, or `null` if never changed
-    - `lastPasswordReset` - A `Date` object representing when your password was last *reset* via the "forgot your password" utility, or `null` if never reset
-    - `lastEmailChange` - A `Date` object representing when your email address was last changed, or `null` if never changed
+    - `err` - An `Error` object on failure, or `null` on success
+    - `timestampLastPasswordChange` - A `Date` object representing when your password was last changed, or `null` if never changed
+    - `timestampLastPasswordReset` - A `Date` object representing when your password was last *reset* via the "forgot your password" utility, or `null` if never reset
+    - `timestampLastEmailChange` - A `Date` object representing when your email address was last changed, or `null` if never changed
 
 **v3.10.0 or later is required to use this method**
 
@@ -510,61 +620,13 @@ Gets when you last changed various account credentials.
 
 ### getAuthSecret(callback)
 - `callback` - A function to be called when the requested data is available
+    - `err` - An `Error` object on failure, or `null` on success
     - `secretID` - A numeric ID assigned to your key by Steam
     - `key` - Your account's "auth secret", as a `Buffer`
 
 **v3.10.0 or later is required to use this method**
 
 Gets your account's auth secret, which is the pre-shared key used for in-home streaming.
-
-### requestPasswordChangeEmail(currentPassword[, callback])
-- `currentPassword` - Your account's current password, pre-change
-- `callback` - Optional. Called when the request completes.
-    - `err` - `null` on success, or an `Error` object on failure
-
-**v3.13.0 or later is required to use this method**
-
-Requests Steam to send you an email that contains a code you can supply to `changePassword` in order to change your
-account's password. If you have a Mobile Authenticator enabled, this will return success but not actually do anything.
-With 2FA, you should use a 2FA code instead of an email code.
-
-### changePassword(oldPassword, newPassword, code[, callback])
-- `oldPassword` - Your account's current (old) password
-- `newPassword` - Your desired new password
-- `code` - Either the code sent to your email from `requestPasswordChangeEmail` or your current Mobile Authenticator 2FA code (if you have 2FA on)
-- `callback` - Optional. Called when the request completes.
-    - `err` - `null` on success, or an `Error` object on failure
-
-**v3.13.0 or later is required to use this method**
-
-Changes your Steam account's password. This won't effect any trading restrictions.
-
-### changeEmail(options[, callback])
-- `options` - An object containing (some of) the following properties:
-    - `password` - Required. Your account's current password.
-    - `newEmail` - Required. The new email address you want to set on your account.
-    - `code` - Optional (at first). The verification code sent to your new email (see below).
-    - `twoFactorCode` - Optional (if you don't have 2FA enabled). If you do have 2FA (Mobile Authenticator) enabled, this is your current 2FA code (when confirming `code`).
-    - `smsCode` - Optional (if Steam doesn't want it). See below.
-- `callback` - Optional. Called when the request completes.
-    - `err` - `null` on success, or an `Error` object on failure
-    - `needsSmsCode` - `true` if Steam wants an SMS verification code (see below).
-
-**v3.13.0 or later is required to use this method.**
-
-Performs both steps in the two-step process that is changing your account's contact email. First, call this with only
-your `password` and `newEmail`. This will cause Steam to send an email to your new email address containing a
-verification code. Once you have that code, call this again with your `password`, `newEmail`, and `code`.
-
-If you have a Mobile Authenticator (2FA) enabled on your account, then for the second request you will need to include
-your current 2FA code as `twoFactorCode`. If you don't and `needsSmsCode` was `true` in the callback to the first request,
-then Steam has sent a verification code in an SMS to your phone. In this case, you need to provide that code as `smsCode`
-in the second request.
-
-`needsSmsCode` may still be `true` in the callback to the second request. In this case, simply ignore it. If you received
-no `err`, then your email was changed. The [`emailInfo`](#emailinfo-1) event will be emitted when your email changes.
-
-**Changing your account's email will start a 5-day trading cooldown.**
 
 ### kickPlayingSession([callback])
 - `callback` - Optional. A function to be called once Steam receives and responds to this request.
@@ -589,7 +651,7 @@ To play a single non-Steam game by name, use a single string (e.g. `"Minecraft"`
 
 To play a single game by AppID and name (the client-provided name is what is given to the WebAPI and mobile app), use an object of this format:
 
-```js
+```json
 {
 	"game_id": 440,
 	"game_extra_info": "Team Fortress 2"
@@ -601,8 +663,8 @@ You can use multiple apps by providing an array of any mixture of the above form
 ### getPlayerCount(appid, callback)
 - `appid` - The AppID of the app for which you'd like the current player/user count (use `0` to get current logged-in Steam user count)
 - `callback` - Called when the requested data is available
-	- `result` - A value from `SteamUser.EResult`
-	- `players` - How many Steam users are currently playing/using the app
+	- `err` - An `Error` object on failure, or `null` on success
+	- `playerCount` - How many Steam users are currently playing/using the app
 
 Requests a count of how many Steam users are currently playing/using an app.
 
@@ -626,6 +688,7 @@ Requests a list of game servers from the master server.
 - `filter` - A master server [filter string](https://developer.valvesoftware.com/wiki/Master_Server_Query_Protocol#Filter)
 - `limit` - How many servers should be returned, at maximum. Hard limit is 5000.
 - `callback` - Called when the requested data is available
+    - `err` - An `Error` object on failure, or `null` on success
 	- `servers` - An array of objects containing server data
 		- `addr` - The server's IP address in `x.x.x.x:p` format
 		- `gameport` - The port the server is running on for game clients
@@ -651,6 +714,7 @@ Requests a list of game servers from the master server.
 ### getServerSteamIDsByIP(ips, callback)
 - `ips` - An array of IP addresses, in `x.x.x.x:p` format
 - `callback` - Called when requested data is available
+    - `err` - An `Error` object on failure, or `null` on success
 	- `servers` - An object whose keys are IP addresses in `x.x.x.x:p` format and values are [`SteamID`](https://www.npmjs.com/package/steamid) objects
 
 **Works when anonymous.** Gets current SteamIDs for servers running on given addresses.
@@ -658,6 +722,7 @@ Requests a list of game servers from the master server.
 ### getServerIPsBySteamID(steamids, callback)
 - `steamids` - An array of [`SteamID`](https://www.npmjs.com/package/steamid) objects, or something which can parse into one (64-bit SteamID as string, Steam3 rendered format)
 - `callback` - Called when requested data is available
+    - `err` - An `Error` object on failure, or `null` on success
 	- `servers` - An object whose keys are 64-bit numeric SteamIDs and values are IP addresses in `x.x.x.x:p` format
 
 **Works when anonymous.** Gets current IP addresses for servers with given SteamIDs.
@@ -665,19 +730,22 @@ Requests a list of game servers from the master server.
 ### getProductChanges(sinceChangenumber, callback)
 - `sinceChangenumber` - The changenumber of the last known changelist. You will get changes which have occurred since then and now. You won't get any info except the current changenumber if you request more than around 5,000 changenumbers in the past.
 - `callback` - Called when data is available
+    - `err` - An `Error` object on failure, or `null` on success
 	- `currentChangenumber` - The changenumber of the newest changelist
-	- `apps` - An array of objects for apps which have changed. Each object has these properties:
+	- `appChanges` - An array of objects for apps which have changed. Each object has these properties:
 		- `appid` - The AppID of the app
 		- `change_number` - The changenumber of the latest changelist in which the app has changed
 		- `needs_token` - `true` if you need an access token to get most details about this app, `null` if not
-	- `packages` - An array of objects for packages which have changed. Each object has the same properties as the `apps` array, except `appid` is `packageid`.
+	- `packageChanges` - An array of objects for packages which have changed. Each object has the same properties as the `apps` array, except `appid` is `packageid`.
 
 **Works when anonymous.** Requests a list of all apps/packages which have changed since a given changenumber.
 
-### getProductInfo(apps, packages, callback)
+### getProductInfo(apps, packages[, inclTokens], callback)
 - `apps` - Either an array of AppIDs, or an array of objects containing `appid` and `access_token` properties
 - `packages` - Either an array of PackageIDs, or an array of objects containing `packageid` and `access_token` properties
+- `inclTokens` - Optional boolean to automatically request product access tokens if they need them. The default value is false.
 - `callback` - Called when requested data is available
+    - `err` - An `Error` object on failure, or `null` on success
 	- `apps` - An object whose keys are AppIDs and whose values are objects
 		- `changenumber` - The changenumber of the latest changelist in which this app changed
 		- `missingToken` - `true` if you need to provide an access token to get more details about this app
@@ -688,12 +756,16 @@ Requests a list of game servers from the master server.
 
 **Works when anonymous.** Requests details about one or more apps or packages.
 
+If you have the PICS cache enabled and the risk of getting stale data is acceptable, you could check
+[the PICS cache](#picscache) if you want instead of calling `getProductInfo`.
+
 ### getProductAccessToken(apps, packages, callback)
 - `apps` - An array of AppIDs
 - `packages` - An array of PackageIDs
 - `callback` - Called when requested data is available
-	- `apps` - An object whose keys are AppIDs and whose values are access tokens
-	- `packages` - An object whose keys are PackageIDs and whose values are access tokens
+    - `err` - An `Error` object on failure, or `null` on success
+	- `appTokens` - An object whose keys are AppIDs and whose values are access tokens
+	- `packageTokens` - An object whose keys are PackageIDs and whose values are access tokens
 	- `appDeniedTokens` - An array of AppIDs for which Steam denied you an access token
 	- `packageDeniedTokens` - An array of PackageIDs for which Steam denied you an access token
 
@@ -701,62 +773,85 @@ Requests a list of game servers from the master server.
 
 Access tokens are global. That is, everyone who has access to an app receives the same token. Tokens do not seem to expire.
 
-### getOwnedApps()
+### getOwnedApps([excludeSharedLicenses])
+- `excludeSharedLicenses` - Pass `true` to exclude apps that are owned via a shared license, and not directly on this account (default `false`)
 
-**v3.3.0 or later is required to use this method**
+**v3.3.0 or later is required to use this method**  
+**v4.7.0 or later is required to use `excludeSharedLicenses`**
 
 Returns an array of AppIDs which your account owns. This cannot be safely called until `appOwnershipCached` is emitted.
 
 `enablePicsCache` must be `true` to use this method. Otherwise, an `Error` will be thrown.
 
-### ownsApp(appid)
+### ownsApp(appid[, excludeSharedLicenses])
 - `appid` - A numeric AppID
+- `excludeSharedLicenses` - Pass `true` to exclude apps that are owned via a shared license, and not directly on this account (default `false`)
 
-**v3.3.0 or later is required to use this method**
+**v3.3.0 or later is required to use this method**  
+**v4.7.0 or later is required to use `excludeSharedLicenses`**
 
 Returns `true` if your account owns the specified AppID, or `false` if not. This cannot be safely called until
 `appOwnershipCached` is emitted.
 
 `enablePicsCache` must be `true` to use this method. Otherwise, an `Error` will be thrown.
 
-### getOwnedDepots()
+### getOwnedDepots([excludeSharedLicenses])
+- `excludeSharedLicenses` - Pass `true` to exclude depots that are owned via a shared license, and not directly on this account (default `false`)
 
-**v3.3.0 or later is required to use this method**
+**v3.3.0 or later is required to use this method**  
+**v4.7.0 or later is required to use `excludeSharedLicenses`**
 
 Returns an array of depot IDs which your account owns. This cannot be safely called until `appOwnershipCached` is emitted.
 
 `enablePicsCache` must be `true` to use this method. Otherwise, an `Error` will be thrown.
 
-### ownsDepot(depotid)
+### ownsDepot(depotid[, excludeSharedLicenses])
 - `depotid` - A numeric depot ID
+- `excludeSharedLicenses` - Pass `true` to exclude depots that are owned via a shared license, and not directly on this account (default `false`)
 
-**v3.3.0 or later is required to use this method**
+**v3.3.0 or later is required to use this method**  
+**v4.7.0 or later is required to use `excludeSharedLicenses`**
 
 Returns `true` if your account owns the specified depot, or `false` if not. This cannot be safely called until
 `appOwnershipCached` is emitted.
 
 `enablePicsCache` must be `true` to use this method. Otherwise, an `Error` will be thrown.
 
-### getOwnedPackages()
+### getOwnedPackages([excludeSharedLicenses])
+- `excludeSharedLicenses` - Pass `true` to exclude packages that are owned via a shared license, and not directly on this account (default `false`)
 
-**v3.3.0 or later is required to use this method**
+**v3.3.0 or later is required to use this method**  
+**v4.7.0 or later is required to use `excludeSharedLicenses`**
 
 Returns an array of package IDs which your account owns. If you logged in anonymously, this can be safely called
 immediately following logon. Otherwise, this cannot be safely called until `licenses` is emitted.
 
-### ownsPackage(packageid)
+### ownsPackage(packageid[, excludeSharedLicenses])
 - `packageid` - A numeric package ID
+- `excludeSharedLicenses` - Pass `true` to exclude packages that are owned via a shared license, and not directly on this account (default `false`)
 
-**v3.3.0 or later is required to use this method**
+**v3.3.0 or later is required to use this method**  
+**v4.7.0 or later is required to use `excludeSharedLicenses`**
 
 Returns `true` if your account owns the specified package ID, or `false` if not. If you logged in anonymously, this can
 be safely called immediately following logon. Otherwise, this cannot be safely called until `licenses` is emitted.
+
+### getStoreTagNames(language, tagIDs, callback)
+- `language` - The language you want tag names in, e.g. "english" or "spanish"
+- `tagIDs` - An array of one or more tag IDs
+- `callback` - A function to be called when the requested data is available
+	- `err` - An `Error` object on failure, or `null` on success
+	- `tags` - An object whose keys are tag IDs and values are objects with two properties: `name` and `englishName`
+
+**v3.26.0 or later is required to use this method**
+
+Retrieves localized names for specified store tag IDs. Tag IDs are available in the response to `getProductInfo`.  
 
 ### getPublishedFileDetails(ids, callback)
 - `ids` - Either an integer, or an array of integers containing the IDs of the published file(s) you want details for
 - `callback` - A function to be called when the request has completed
     - `err` - An `Error` object on failure, or `null` on success
-    - `results` - An object whose keys are published file IDs, and values are object containing a ton of information
+    - `files` - An object whose keys are published file IDs, and values are object containing a ton of information
 
 **v3.8.0 or later is required to use this method**
 
@@ -773,7 +868,7 @@ available.
 **v1.9.0 or later is required to use this method**
 
 Changes our online status, and optionally your profile name. You need to call this after you logon or else you'll show up as offline.
-You won't receive any chat messages or persona data about your friends if you don't go online.
+You won't receive any persona data about your friends if you don't go online.
 
 ### setUIMode(mode)
 - `mode` - A value from [`EClientUIMode`](https://github.com/DoctorMcKay/node-steam-user/blob/master/resources/EClientUIMode.js)
@@ -786,7 +881,7 @@ Sets your current UI mode, which displays as an icon next to your online status 
 - `steamID` - The SteamID of the user you want to add as a friend, as a `SteamID` object or a string that can parse into one
 - `callback` - Optional. Called when Steam responds to this request.
     - `err` - An `Error` object on failure, or `null` on success. If this is an `Error` object, it will have an `eresult` property.
-    - `name` - If successful, the current persona name of the user you added.
+    - `personaName` - If successful, the current persona name of the user you added.
 
 **v1.9.0 or later is required to use this method. v3.10.0 or later is required to use `callback`.**
 
@@ -806,7 +901,7 @@ Removed a specified user from your friends list. Also ignores an outstanding fri
 ### blockUser(steamID[, callback])
 - `steamID` - The SteamID of the user you want to block, as a `SteamID` object or a string that can parse into one
 - `callback` - Optional. Called when the request completes
-	- `eresult` - A value from the `EResult` enum
+	- `err` - An `Error` object on failure, or `null` on success
 
 **v1.9.0 or later is required to use this method**
 
@@ -815,7 +910,7 @@ Blocks all communication with a specified user.
 ### unblockUser(steamID[, callback])
 - `steamID` - The SteamID of the user you want to unblock, as a `SteamID` object or a string that can parse into one
 - `callback` - Optional. Called when the request completes
-	- `eresult` - A value from the `EResult` enum
+	- `err` - An `Error` object on failure, or `null` on success
 
 **v1.9.0 or later is required to use this method**
 
@@ -824,16 +919,59 @@ Unblocks all communication with a specified user.
 ### getPersonas(steamids[, callback])
 - `steamids` - An array of `SteamID` objects or strings which can parse into `SteamID` objects
 - `callback` - Optional. Called when the requested data is available.
+    - `err` - An `Error` object on failure, or `null` on success
 	- `personas` - An object whose keys are 64-bit SteamIDs and whose values are objects identical to those received in the [`user`](#user) event
 
 **v1.9.0 or later is required to use this method**
 
 Requests persona data for one or more users from Steam. The response will arrive in the [`user`](#user) event, or in the callback if provided.
 
+### uploadRichPresence(appID, richPresence)
+- `appID` - The ID of the app for which you want to upload rich presence data. You should be [playing](#gamesplayedapps-force) this app.
+- `richPresence` - An object containing your rich presence data. All values should be strings.
+
+**v4.4.0 or later is required to use this method**
+
+Uploads rich presence data to Steam. In order to display text in the Steam friends list, you need a key named `steam_display`,
+which **must** be a rich presence localization key (you can see RP keys for apps [on SteamDB](https://steamdb.info/app/440/localization/)).
+
+`%placeholders%` in the rich presence localization value will be replaced with the value of the corresponding key that
+you upload. For example, to get a TF2 RP string of "Special Event - Hello, World!", then you should upload:
+
+```json
+{
+	"steam_display": "#TF_RichPresence_Display",
+	"state": "PlayingMatchGroup",
+	"matchgrouploc": "SpecialEvent",
+	"currentmap": "Hello, World!"
+}
+```
+
+This will subsequently be parsed like this:
+
+1. `#TF_RichPresence_Display` = `{#TF_RichPresence_State_%state%}`
+2. `{#TF_RichPresence_State_PlayingMatchGroup}` = `{#TF_RichPresence_MatchGroup_%matchgrouploc%} - %currentmap%`
+3. `{#TF_RichPresence_MatchGroup_SpecialEvent} - Hello, World!`
+4. `Special Event - Hello, World!`
+
+### getAppRichPresenceLocalization(appID, language, callback)
+- `appID` - The ID of the app for which you want rich presence localizations
+- `language` - The full name of the language you want, e.g. "english" or "spanish"
+- `callback` - Called when the requested data is available.
+	- `err` - An `Error` object on failure, or `null` on success
+	- `response` - The response object
+		- `tokens` - An object where keys are localization tokens (prefixed with `#`, e.g. `#TF_RichPresence_Display`) and values are localized strings
+
+**v4.0.0 or later is required to use this method**
+
+Requests localized rich presence strings for a particular app in the given language. This will allow you to decode the
+`rich_presence` array in the [`user`](#user) event into the localized string displayed in the Steam client.
+
 ### getSteamLevels(steamids, callback)
 - `steamids` - An array of `SteamID` objects or strings that can parse into `SteamID` objects
 - `callback` - Called when the requested data is available.
-	- `results` - An object whose keys are 64-bit SteamIDs (as strings) and whose values are Steam levels
+    - `err` - An `Error` object on failure, or `null` on success
+	- `users` - An object whose keys are 64-bit SteamIDs (as strings) and whose values are Steam levels
 
 **v1.9.0 or later is required to use this method**
 
@@ -843,13 +981,27 @@ Gets the Steam Level for one or more Steam users (who do not have to be on your 
 - `steamids` - An array of `SteamID` objects or strings that can parse into `SteamID` objects
 - `callback` - Called when the requested data is available
     - `err` - An `Error` object on failure, or `null` on success
-    - `results` - An object whose keys are 64-bit SteamIDs (as strings) and whose values are objects containing the following properties:
+    - `users` - An object whose keys are 64-bit SteamIDs (as strings) and whose values are objects containing the following properties:
         - `name` - The new name adopted by the user, as a string
         - `name_since` - A `Date` object representing when the user adopted this name
 
 **v3.10.0 or later is required to use this method**
 
 Gets the last 10 persona names (including the current one) used by one or more Steam users (who do not have to be on your friends list).
+
+### getNicknames([callback])
+- `callback` - Optional. Called when the requested data is available
+    - `err` - An `Error` object on failure, or `null` on success
+    - `nicknames` - An object whose keys are 64-bit SteamIDs (as strings) and whose values are nicknames for the corresponding users (as strings)
+
+**v3.23.0 or later is required to use this method**
+
+Retrieves an up-to-date nickname list (see [`nicknameList`](#nicknamelist)) from Steam. The `nicknameList` event will be
+emitted when the response to this request is received, immediately after the callback fires. If you provide no callback,
+the `nicknameList` event is still emitted.
+
+In theory, the nickname list in `myNicknames` will always be up-to-date since v3.23.0, but you may wish to use this if
+you want to be doubly sure.
 
 ### setNickname(steamID, nickname[, callback])
 - `steamID` - The SteamID of the user on whom you want to set a nickname, as a `SteamID` object or a string that can parse into one
@@ -862,18 +1014,15 @@ Gets the last 10 persona names (including the current one) used by one or more S
 Sets a nickname on a user. If one already exists, overwrites it. The `myNicknames` property will be updated just before
 the callback fires, on success.
 
-**Note:** Using this doesn't appear to send a notification to any other instances that may be logged on. It appears to
-also be possible for Steam to report success when using this method, when in reality your nickname wasn't saved on the
-server. You won't be able to detect this without requesting the user's Steam profile via HTTP(S) or reconnecting to the
-CM, as the `myNicknames` property is updated automatically when this method reports success without verifying with the
-server.
+**Note:** It appears to be possible for Steam to report success when using this method, when in reality your nickname
+wasn't saved on the server. You can detect this case by calling `getNicknames`.
 
 ### getGameBadgeLevel(appid, callback)
 - `appid` - The AppID of the game you want to get your badge level for
 - `callback` - Called when the requested data is available.
     - `err` - An `Error` object on failure, or `null` on success
     - `steamLevel` - Your own Steam level
-    - `badgeLevel` - The level on your badge for this game (0 if you don't have one)
+    - `regularBadgeLevel` - The level on your badge for this game (0 if you don't have one)
     - `foilBadgeLevel` - The level on your foil badge for this game (0 if you don't have one)
 
 **v3.8.0 or later is required to use this method**
@@ -888,8 +1037,7 @@ Gets your own Steam Level, and the level you have on a badge for a particular ga
 
 Invites a user to a Steam group.
 
-**Warning:** Only send group invites in response to a user's request; sending automated group invites is a violation of
-the Steam Subscriber Agreement and can get you banned.
+**Warning:** Group invites can only be sent to users on your friends list. [Why is this?](https://support.steampowered.com/kb_article.php?ref=2092-QLZX-8453#answer)
 
 ### respondToGroupInvite(groupSteamID, accept)
 - `groupSteamID` - The SteamID of the group you were invited to, as a `SteamID` object or a string which can parse into one
@@ -898,6 +1046,57 @@ the Steam Subscriber Agreement and can get you banned.
 **v3.7.0 or later is required to use this method**
 
 Joins a group you were invited to or ignores the invite.
+
+### createFriendsGroup(groupName[, callback])
+- `groupName` - The name to create the friends group with
+- `callback` - Optional. Called when requested data is available
+	- `err` - An `Error` object on failure, or null on success
+	- `groupID` - A reference group ID associated with the group
+
+**v3.27.0 or later is required to use this method**
+
+Creates a friends group (also known as a tag within the official Steam client)
+
+### deleteFriendsGroup(groupID[, callback])
+- `groupID` - The reference group ID associated with the group
+- `callback` - Optional. Called when requested data is available
+	- `err` An `Error` object on failure, or null on success
+
+**v3.27.0 or later is required to use this method**
+
+Deletes a friends group (also known as a tag within the official Steam client)
+
+### renameFriendsGroup(groupID, newName[, callback])
+- `groupID` - The reference group ID associated with the group
+- `newName` - The new name to rename the group to
+- `callback` - Optional. Called when requested data is available
+	- `err` An `Error` object on failure, or null on success
+
+**v3.27.0 or later is required to use this method**
+
+Renames a friends group (also known as a tag within the official Steam client)
+
+**Note**: The change does not seem to update within the official Steam client
+
+### addFriendToGroup(groupID, userSteamID[, callback])
+- `groupID` - The reference group ID associated with the group
+- `userSteamID` - Either a `SteamID` object or a string which can parse into one
+- `callback` - Optional. Called when requested data is available
+	- `err` An `Error` object on failure, or null on success
+
+**v3.27.0 or later is required to use this method**
+
+Adds a friend to a friends group (also known as a tag within the official Steam client)
+
+### removeFriendFromGroup(groupID, userSteamID[, callback])
+- `groupID` - The reference group ID associated with the group
+- `userSteamID` - Either a `SteamID` object or a string which can parse into one
+- `callback` - Optional. Called when requested data is available
+	- `err` An `Error` object on failure, or null on success
+
+**v3.27.0 or later is required to use this method**
+
+Removes a friend to a friends group (also known as a tag within the official Steam client)
 
 ### trade(steamID)
 - `steamID` - Either a `SteamID` object or a string which can parse into one
@@ -913,6 +1112,56 @@ Send a trade request to the specified user. Listen for the [`tradeResponse`](#tr
 
 Cancels your outstanding trade request to the specified user.
 
+### getAssetClassInfo(language, appid, classes, callback)
+- `language` - A string containing the language code you want stuff translated in, e.g. "en" or "es" or "zh"
+- `appid` - The AppID of the game which owns the items you're interested in
+- `classes` - An array of objects, where each object has a `classid` property and optionally an `instanceid` property
+- `callback` - Called when the requested data is available
+	- `err` - An `Error` object on failure, or `null` on success
+	- `descriptions` - An array of description objects
+
+**v3.25.0 or later is required to use this method**
+
+Retrieves asset description data from Steam. Works similarly to [the WebAPI method by the same name](https://lab.xpaw.me/steam_api_documentation.html#ISteamEconomy_GetAssetClassInfo_v1),
+although at time of documentation no tags are returned.
+
+### getTradeURL(callback)
+- `callback` - Called when the requested data is available
+	- `err` - An `Error` object on failure, or `null` on success
+	- `response` - The response object
+		- `token` - Just the token part of your trade URL
+		- `url` - Your full trade URL
+
+**v3.28.0 or later is required to use this method**
+
+Gets your account's trade token and URL.
+
+### changeTradeURL(callback)
+- `callback` - Called when the requested data is available
+	- `err` - An `Error` object on failure, or `null` on success
+	- `response` - The response object
+		- `token` - Just the token part of your new trade URL
+		- `url` - Your full new trade URL
+
+**v3.28.0 or later is required to use this method**
+
+Asks the Steam server to generate a new trade token for your account, and returns the new token and URL.
+
+### getEmoticonList(callback)
+- `callback` - Called when the requested data is available
+	- `err` - An `Error` object on failure, or `null` on success
+	- `response` - The response object
+		- `emoticons` - An object where keys are emoticon names (with colons, e.g. `":steamhappy:"`) and values are objects with these properties:
+			- `name` - The name of this emoticon, with colons (e.g. `":steamhappy:"`)
+			- `count` - A count of how many of this emoticon you own
+			- `time_last_used` - A `Date` object representing when you last used this emoticon (`null` if never used)
+			- `use_count` - A count of how many times you have used this emoticon
+			- `time_received` - A `Date` object representing when you received this emoticon (`null` if not applicable, e.g. the default Steam emoticons)
+			
+**v4.5.0 or later is required to use this method**
+
+Requests a list of emoticons that your account is entitled to use.
+
 ### chatMessage(recipient, message[, type])
 - `recipient` - Either a `SteamID` object or a string which can parse into one for the recipient of your message
 - `message` - The chat message that you're sending to them
@@ -920,7 +1169,12 @@ Cancels your outstanding trade request to the specified user.
 
 **v1.9.0 or later is required to use this method**
 
-Sends a chat message to a friend or a chat room.
+Sends a chat message to a friend or a legacy chat room.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### chatTyping(recipient)
 - `recipient` - Either a `SteamID` object or a string which can parse into one
@@ -929,10 +1183,15 @@ Sends a chat message to a friend or a chat room.
 
 Tells the `recipient` that you're typing a chat message.
 
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
+
 ### getChatHistory(steamID[, callback])
 - `steamID` - Either a `SteamID` object or a string which can parse into one
 - `callback` - Optional. Called when the requested data is available
-	- `success` - An `EResult` value
+	- `err` - An `Error` object on failure, or `null` on success
 	- `messages` - An array of message objects, each of which has the following properties:
 		- `steamID` - The SteamID of the user who sent the message, either us or them (as a `SteamID` object)
 		- `timestamp` - A `Date` object for when the message was sent
@@ -943,49 +1202,84 @@ Tells the `recipient` that you're typing a chat message.
 
 Requests our chat history with a user. The results will arrive either in the callback or in the [`chatHistory`](#chathistory) event.
 
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
+
 ### joinChat(steamID[, callback])
 - `steamID` - The SteamID of the chat to join (as a `SteamID` object or a string which can parse into one)
 - `callback` - Optional. Called when we either join or fail to join.
-	- `result` - A value from `EResult`
+	- `err` - An `Error` object on failure, or `null` on success
 
 **v1.9.0 or later is required to use this method**
 
-Joins a chat room. To join a group chat, use the group's SteamID.
+Joins a legacy chat room. To join a group chat, use the group's SteamID.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### leaveChat(steamID)
 - `steamID` - The SteamID of the chat room to leave (as a `SteamID` object or a string which can parse into one)
 
 **v1.9.0 or later is required to use this method**
 
-Leaves a chat room we're in.
+Leaves a legacy chat room we're in.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### setChatPrivate(steamID)
 - `steamID` - The SteamID of the chat room to lock (as a `SteamID` object or a string which can parse into one)
 
 **v1.9.0 or later is required to use this method**
 
-Locks a chat room so that only group members and invited users can join.
+Locks a legacy chat room so that only group members and invited users can join.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### setChatPublic(steamID)
 - `steamID` - The SteamID of the chat room to unlock (as a `SteamID` object or a string which can parse into one)
 
 **v1.9.0 or later is required to use this method**
 
-Unlocks a chat room so anyone can join.
+Unlocks a legacy chat room so anyone can join.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### setChatOfficersOnly(steamID)
 - `steamID` - The SteamID of the chat room to set officers-only (as a `SteamID` object or a string which can parse into one)
 
 **v1.9.0 or later is required to use this method**
 
-Sets a chat room so that only group officers can chat.
+Sets a legacy chat room so that only group officers can chat.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### unsetChatOfficersOnly(steamID)
 - `steamID` - The SteamID of the chat room to unset officers-only (as a `SteamID` object or a string which can parse into one)
 
 **v1.9.0 or later is required to use this method**
 
-Sets a chat room so that anyone can chat.
+Sets a legacy chat room so that anyone can chat.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### kickFromChat(chatID, userID)
 - `chatID` - The SteamID of the chat room to kick the user from (as a `SteamID` object or a string which can parse into one)
@@ -993,7 +1287,12 @@ Sets a chat room so that anyone can chat.
 
 **v1.9.0 or later is required to use this method**
 
-Kicks a user from a chat room.
+Kicks a user from a legacy chat room.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### banFromChat(chatID, userID)
 - `chatID` - The SteamID of the chat room to ban the user from (as a `SteamID` object or a string which can parse into one)
@@ -1001,7 +1300,12 @@ Kicks a user from a chat room.
 
 **v1.9.0 or later is required to use this method**
 
-Bans a user from a chat room.
+Bans a user from a legacy chat room.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### unbanFromChat(chatID, userID)
 - `chatID` - The SteamID of the chat room to unban the user from (as a `SteamID` object or a string which can parse into one)
@@ -1009,7 +1313,12 @@ Bans a user from a chat room.
 
 **v1.9.0 or later is required to use this method**
 
-Unbans a banned user from a chat room.
+Unbans a banned user from a legacy chat room.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### inviteToChat(chatID, userID)
 - `chatID` - The SteamID of the chat room to invite to (as a `SteamID` object or a string which can parse into one)
@@ -1017,36 +1326,48 @@ Unbans a banned user from a chat room.
 
 **v1.9.0 or later is required to use this method**
 
-Invites a user to a chat room.
+Invites a user to a legacy chat room.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### createChatRoom([convertUserID, ][inviteUserID, ][callback])
 - `convertUserID` - If the user with the SteamID passed here has a chat window open with us, their window will be converted to the new chat room and they'll join it automatically. If they don't have a window open, they'll get an invite.
 - `inviteUserID` - If specified, the user with the SteamID passed here will get invited to the new room automatically.
 - `callback` - Optional. Called when the chat is created or a failure occurs.
-	- `result` - A value from `EResult`
+	- `err` - An `Error` object on failure, or `null` on success
 	- `chatID` - If successful, the SteamID of the newly-created room, as a `SteamID` object
 
 **v1.9.0 or later is required to use this method**
 
-Creates a new multi-user chat room
+Creates a new multi-user legacy chat room.
+
+**This is deprecated.** This creates an old-style, pre-new-chat chat room, which is not compatible with Steam's
+newer chat system. You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property of
+each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### redeemKey(key[, callback])
 - `key` - Steam formatted game key
 - `callback` - Optional. Called when request completes
-	- `result` - An `EResult` value
-	- `details` - A `SteamUser.EPurchaseResult` value
-	- `packages` - An object whose keys are packageIDs and values are package names
+	- `err` - An `Error` object on failure, or `null` on success
+	- `purchaseResultDetails` - A `SteamUser.EPurchaseResult` value
+	- `packageList` - An object whose keys are packageIDs and values are package names
 
 **v3.2.0 or later is required to use this method**
 
-Redeems a game code (CD key) on your account.
+Redeems a game code (CD key) on your account. If this request fails, the `Error` object will have `purchaseResultDetails`
+and `packageList` properties, and you should access this data via the `Error` object and not via the callback arguments.
 
 ### requestFreeLicense(appIDs[, callback])
 - `appIDs` - An array of AppIDs for which you want licenses
 - `callback` - Optional. Called when request completes
     - `err` - An `Error` object on failure, or `null` on success
-    - `grantedPackages` - An array of package IDs that were granted to your account as a result of this request
-    - `grantedAppIDs` - An array of AppIDs that were granted to your account as a result of this request
+    - `grantedPackageIds` - An array of package IDs that were granted to your account as a result of this request
+    - `grantedAppIds` - An array of AppIDs that were granted to your account as a result of this request
 
 **v3.18.0 or later is required to use this method**
 
@@ -1069,7 +1390,7 @@ license(s).
 - `userData` - If the app expects some "user data" (arbitrary data which will be encrypted into the ticket), provide it here. Otherwise, omit this argument or pass an empty Buffer.
 - `callback` - Called when the request completes
     - `err` - If there was an error, this is an `Error` object. Otherwise, it's `null`.
-    - `ticket` - If successful, this is your encrypted appticket as a Buffer. You should provide the entire contents of the Buffer to the recipient.
+    - `encryptedAppTicket` - If successful, this is your encrypted appticket as a Buffer. You should provide the entire contents of the Buffer to the recipient.
 
 **v3.14.0 or later is required to use this method**
 
@@ -1079,6 +1400,12 @@ To use encrypted app tickets, publishers must set up an encryption key in the St
 not work if encrypted tickets haven't been set up for the AppID you request a ticket for. You cannot decrypt an
 encrypted app ticket, nor can you view anything it contains. It is for all intents and purposes an opaque blob of binary
 data which only the developer/publisher of the game can do anything with.
+
+### sendToGC(appid, msgType, protoBufHeader, payload[, callback])
+
+**v4.1.0 or later is required to use this method**
+
+[Please see documentation for GC interaction on the GitHub wiki.](https://github.com/DoctorMcKay/node-steam-user/wiki/Game-Coordinator)
 
 # Events [^](#contents)
 
@@ -1114,7 +1441,10 @@ Emitted when you're successfully logged into Steam.
 	- `code` - The Steam Guard auth code
 - `lastCodeWrong` - `true` if you're using 2FA and the last code you provided was wrong, `false` otherwise
 
-If the `promptSteamGuardCode` option is disabled, this event will be emitted when Steam requests a Steam Guard code from us. You should collect the code from the user somehow and then call the `callback` with the code as the sole argument.
+This event will be emitted when Steam requests a Steam Guard code from us.
+You should collect the code from the user somehow and then call the `callback` with the code as the sole argument.
+
+If no listener is bound to this event, then `steam-user` will prompt the user for a code via stdin.
 
 Example:
 
@@ -1159,7 +1489,9 @@ Emitted when Steam sends us a new sentry file. By default, `SteamUser` will auto
 - `sessionID` - The value of the `sessionid` cookie
 - `cookies` - An array of cookies, as `name=value` strings
 
-Emitted when a steamcommunity.com web session is successfully negotiated. This will automatically be emitted on logon and in response to [`webLogOn`](#weblogon) calls.
+Emitted when a steamcommunity.com web session is successfully negotiated.
+This will automatically be emitted on logon (**unless** you used a `webLogonToken` to log on) and in response to
+[`webLogOn`](#weblogon) calls.
 
 Some libraries require you to provide your `sessionID`, others don't. If your library doesn't, you can safely ignore it.
 
@@ -1187,7 +1519,18 @@ Emitted when Steam sends a notification of new comments.
 ### tradeOffers
 - `count` - How many active received trade offers you have (can be 0)
 
-Emitted when Steam sends a notification of new trade offers.
+Emitted when Steam sends a notification of new trade offers. This gets emitted shortly after logon iff it's nonzero, and
+every time it changes thereafter (i.e. both when you receive a trade offer and when an active trade offer you received
+gets accepted/canceled/declined).
+
+### communityMessages
+- `count` - How many unread community (moderator) messages you have (can be 0)
+
+**v3.26.0 or later is required to use this event**
+
+Emitted when Steam sends a notification of new community (moderator) messages. This gets emitted shortly after logon iff
+it's nonzero, and every time it changes thereafter (i.e. both when you receive a community message and when a community
+message gets read).
 
 ### offlineMessages
 - `count` - How many unread offline chat messages you have
@@ -1391,7 +1734,9 @@ Emitted under these conditions:
 
 *This is an [ID event](#id-events).*
 
-Emitted when Steam sends us persona information about a user. The [`users`](#users) property isn't yet updated when this is emitted, so you can compare to see what changed.
+Emitted when Steam sends us persona information about a user, which will only happen if this client instance's persona
+state is [online](#setpersonastate-name). The [`users`](#users) property isn't yet updated when this is emitted, so you
+can compare to see what changed.
 
 ### group
 - `sid` - A `SteamID` object for the group whose data we just received
@@ -1455,13 +1800,20 @@ The [`myGroups`](#mygroups) property isn't yet updated when this is emitted, so 
 
 **v1.9.0 or later is required to use this event**
 
-Emitted when our friends list is downloaded from Steam after logon.
+Emitted when our friends list is downloaded from Steam after logon, and is now available in [`myFriends`](#myfriends).
+
+### friendPersonasLoaded
+
+**v3.22.0 or later is required to use this event**
+
+Emitted when all personas have been loaded for our entire friends list, and they are all now available in
+[`users`](#users).
 
 ### groupList
 
 **v1.9.0 or later is required to use this event**
 
-Emitted when our group list is downloaded from Steam after logon.
+Emitted when our group list is downloaded from Steam after logon, and is now available in [`myGroups`](#mygroups).
 
 ### friendsGroupList
 - `groups` - An object whose structure is identical to the [`myFriendGroups`](#myfriendgroups) property
@@ -1481,6 +1833,17 @@ The `myFriendGroups` property will be updated **after** this event is emitted, s
 Emitted when we receive our full nickname list from Steam, which should be shortly after logon (automatically).
 You can access it via the [`myNicknames`](#mynicknames) property.
 
+### nickname
+- `steamID` - The SteamID of the user whose nickname changed, as a `SteamID` object
+- `newNickname` - The user's new nickname, or `null` if their existing nickname has been deleted
+
+**v3.23.0 or later is required to use this event**
+
+Emitted when a friend's nickname is changed somewhere else (that is, on the web or by another client sessions). This is
+not emitted in response to a `setNickname` call.
+
+This is emitted before the `myNicknames` property is updated, so you can compare with that object to see what it used to be.
+
 ### friendOrChatMessage
 - `senderID` - The message sender, as a `SteamID` object
 - `message` - The message text
@@ -1490,7 +1853,12 @@ You can access it via the [`myNicknames`](#mynicknames) property.
 
 *This is an [ID event](#id-events).*
 
-Emitted when we receive either a friend message or a chat room message, as long as we're [online](#setpersonastate-name).
+Emitted when we receive either a friend message or a legacy chat room message, as long as we're [online](#setpersonastate-name).
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### friendMessage
 - `senderID` - The message sender, as a `SteamID` object
@@ -1502,6 +1870,11 @@ Emitted when we receive either a friend message or a chat room message, as long 
 
 Emitted when we receive a direct friend message (that is, not through a chat room), as long as we're [online](#setpersonastate-name).
 
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
+
 ### friendTyping
 - `senderID` - The `SteamID` of the friend who's typing
 
@@ -1510,6 +1883,11 @@ Emitted when we receive a direct friend message (that is, not through a chat roo
 *This is an [ID event](#id-events).*
 
 Emitted when Steam notifies us that one of our friends is typing a message to us, as long as we're [online](#setpersonastate-name).
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### friendLeftConversation
 - `senderID` - The `SteamID` of the friend who closed our chat window
@@ -1521,6 +1899,11 @@ Emitted when Steam notifies us that one of our friends is typing a message to us
 Emitted when Steam notifies us that one of our friends with whom we've been chatting has closed our chat window, as
 long as we're [online](#setpersonastate-name).
 
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
+
 ### friendMessageEcho
 - `recipientID` - The `SteamID` of the user who rececived this message
 - `message` - The message text
@@ -1531,6 +1914,11 @@ long as we're [online](#setpersonastate-name).
 
 Emitted when Steam echos us a message that we sent to a friend on another login.
 
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
+
 ### friendTypingEcho
 - `recipientID` - The `SteamID` of the user who we're typing to
 
@@ -1539,6 +1927,11 @@ Emitted when Steam echos us a message that we sent to a friend on another login.
 *This is an [ID event](#id-events).*
 
 Emitted when Steam echos us a notification that we're typing to a friend on another login.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### chatMessage
 - `room` - The `SteamID` of the chat room
@@ -1549,12 +1942,17 @@ Emitted when Steam echos us a notification that we're typing to a friend on anot
 
 *This is an [ID event](#id-events).*
 
-Emitted when we receive a chat message from a chat room, as long as we're [online](#setpersonastate-name).
+Emitted when we receive a chat message from a legacy chat room, as long as we're [online](#setpersonastate-name).
 This is a special ID event. Any of the following are acceptable:
 - `chatMessage`
 - `chatMessage#roomID`
 - `chatMessage#senderID`
 - `chatMessage#roomID#senderID`
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### chatHistory
 - `steamID` - The `SteamID` of the user with whom we got chat history
@@ -1567,6 +1965,11 @@ This is a special ID event. Any of the following are acceptable:
 
 With the exception of the `steamID` argument, this is identical to the callback of `getChatHistory`.
 
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
+
 ### chatInvite
 - `inviterID` - The `SteamID` of the user who invited us
 - `chatID` - The `SteamID` of the chat that we were invited to
@@ -1576,16 +1979,21 @@ With the exception of the `steamID` argument, this is identical to the callback 
 
 *This is an [ID event](#id-events).*
 
-Emitted when we're invited to join a chat room. This is a special ID event. Any of the following are acceptable:
+Emitted when we're invited to join a legacy chat room. This is a special ID event. Any of the following are acceptable:
 - `chatInvite`
 - `chatInvite#inviterID`
 - `chatInvite#chatID`
 - `chatInvite#inviterID#chatID`
 
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
+
 ### chatCreated
-- `friendID` - The `SteamID` of the friend with whom we were creating this room
+- `friendID` - The `SteamID` of the friend with whom we were creating this legacy chat room
 - `eresult` - An `EResult` value
-- `chatID` - The `SteamID` of the newly-created chat, if successful
+- `chatID` - The `SteamID` of the newly-created legacy chat, if successful
 
 **v1.9.0 or later is required to use this event**
 
@@ -1593,8 +2001,13 @@ Emitted when we're invited to join a chat room. This is a special ID event. Any 
 
 With the exception of the `friendID` argument, this event is identical to the callback of `createChatRoom`.
 
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
+
 ### chatEnter
-- `chatID` - The `SteamID` of the chat room that we either entered or failed to enter
+- `chatID` - The `SteamID` of the legacy chat room that we either entered or failed to enter
 - `response` - A value from `EChatRoomEnterResponse`
 
 **v1.9.0 or later is required to use this event**
@@ -1603,47 +2016,72 @@ With the exception of the `friendID` argument, this event is identical to the ca
 
 With the exception of the `chatID` argument, this event is identical to the callback of `joinChat`.
 
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
+
 ### chatLeft
-- `chatID` - The `SteamID` of the chat room that we left
+- `chatID` - The `SteamID` of the legacy chat room that we left
 
 **v1.9.0 or later is required to use this event**
 
 *This is an [ID event](#id-events).*
 
-Emitted when we leave a chat room for any reason (we left, kicked, banned, etc).
+Emitted when we leave a legacy chat room for any reason (we left, kicked, banned, etc).
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### chatUserJoined
-- `chatID` - The `SteamID` of the chat room that the user joined
+- `chatID` - The `SteamID` of the legacy chat room that the user joined
 - `userID` - The `SteamID` of the user who joined
 
 **v1.9.0 or later is required to use this event**
 
 *This is an [ID event](#id-events).*
 
-Emitted when a user joins a chat room we're in.
+Emitted when a user joins a legacy chat room we're in.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### chatUserLeft
-- `chatID` - The `SteamID` of the chat room that the user left
+- `chatID` - The `SteamID` of the legacy chat room that the user left
 - `userID` - The `SteamID` of the user who left
 
 **v1.9.0 or later is required to use this event**
 
 *This is an [ID event](#id-events).*
 
-Emitted when a user leaves a chat room we're in.
+Emitted when a user leaves a legacy chat room we're in.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### chatUserDisconnected
-- `chatID` - The `SteamID` of the chat room that the user disconnected from
+- `chatID` - The `SteamID` of the legacy chat room that the user disconnected from
 - `userID` - The `SteamID` of the user who disconnected
 
 **v1.9.0 or later is required to use this event**
 
 *This is an [ID event](#id-events).*
 
-Emitted when a user in a chat room we're in disconnects from Steam.
+Emitted when a user in a legacy chat room we're in disconnects from Steam.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### chatUserKicked
-- `chatID` - The `SteamID` of the chat room that the user was kicked from
+- `chatID` - The `SteamID` of the legacy chat room that the user was kicked from
 - `userID` - The `SteamID` of the user who was kicked
 - `actor` - The `SteamID` of the user who did the kicking
 
@@ -1651,10 +2089,15 @@ Emitted when a user in a chat room we're in disconnects from Steam.
 
 *This is an [ID event](#id-events).*
 
-Emitted when a user is kicked from a chat room we're in.
+Emitted when a user is kicked from a legacy chat room we're in.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### chatUserBanned
-- `chatID` - The `SteamID` of the chat room that the user was banned from
+- `chatID` - The `SteamID` of the legacy chat room that the user was banned from
 - `userID` - The `SteamID` of the user who was banned
 - `actor` - The `SteamID` of the user who did the banning
 
@@ -1662,67 +2105,102 @@ Emitted when a user is kicked from a chat room we're in.
 
 *This is an [ID event](#id-events).*
 
-Emitted when a user is banned from a chat room we're in.
+Emitted when a user is banned from a legacy chat room we're in.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### chatUserSpeaking
-- `chatID` - The `SteamID` of the chat room that the user is speaking in
+- `chatID` - The `SteamID` of the legacy chat room that the user is speaking in
 - `userID` - The `SteamID` of the user who is speaking
 
 **v1.9.0 or later is required to use this event**
 
 *This is an [ID event](#id-events).*
 
-Emitted when a user in a chat room we're in starts speaking over voice chat.
+Emitted when a user in a legacy chat room we're in starts speaking over voice chat.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### chatUserDoneSpeaking
-- `chatID` - The `SteamID` of the chat room that the user is done speaking in
+- `chatID` - The `SteamID` of the legacy chat room that the user is done speaking in
 - `userID` - The `SteamID` of the user who is done speaking
 
 **v1.9.0 or later is required to use this event**
 
 *This is an [ID event](#id-events).*
 
-Emitted when a user in a chat room we're in stops speaking over voice chat.
+Emitted when a user in a legacy chat room we're in stops speaking over voice chat.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### chatSetPublic
-- `chatID` - The `SteamID` of the chat room that was unlocked
+- `chatID` - The `SteamID` of the legacy chat room that was unlocked
 - `actor` - The `SteamID` of the user who unlocked it
 
 **v1.9.0 or later is required to use this event**
 
 *This is an [ID event](#id-events).*
 
-Emitted when a chat room we're in is unlocked so that anyone can join.
+Emitted when a legacy chat room we're in is unlocked so that anyone can join.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### chatSetPrivate
-- `chatID` - The `SteamID` of the chat room that was locked
+- `chatID` - The `SteamID` of the legacy chat room that was locked
 - `actor` - The `SteamID` of the user who locked it
 
 **v1.9.0 or later is required to use this event**
 
 *This is an [ID event](#id-events).*
 
-Emitted when a chat room we're in is locked so that only group members can join without an invite.
+Emitted when a legacy chat room we're in is locked so that only group members can join without an invite.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### chatSetOfficersOnly
-- `chatID` - The `SteamID` of the chat room that was set officers-only
+- `chatID` - The `SteamID` of the legacy chat room that was set officers-only
 - `actor` - The `SteamID` of the user who set it officers-only
 
 **v1.9.0 or later is required to use this event**
 
 *This is an [ID event](#id-events).*
 
-Emitted when a chat room we're in is set so that only group officers can chat.
+Emitted when a legacy chat room we're in is set so that only group officers can chat.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### chatSetPrivate
-- `chatID` - The `SteamID` of the chat room that was unset officers-only
+- `chatID` - The `SteamID` of the legacy chat room that was unset officers-only
 - `actor` - The `SteamID` of the user who unset it officers-only
 
 **v1.9.0 or later is required to use this event**
 
 *This is an [ID event](#id-events).*
 
-Emitted when a chat room we're in is set so that everyone can chat.
+Emitted when a legacy chat room we're in is set so that everyone can chat.
+
+**This is deprecated.** You should use `SteamChatRoomClient` instead, which is available as the [chat](#chat) property
+of each `SteamUser` instance.
+
+[Read SteamChatRoomClient docs here.](https://github.com/DoctorMcKay/node-steam-user/wiki/SteamChatRoomClient)
 
 ### lobbyInvite
 - `inviterID` - The `SteamID` of the user who invited us to a Steam lobby
@@ -1734,3 +2212,26 @@ Emitted when a chat room we're in is set so that everyone can chat.
 
 Emitted when we're invited to a Steam lobby. The inviter should be currently playing the game associated with this
 lobby, so you can get the AppID of the associated game from their user persona data.
+
+### appLaunched
+- `appid`
+
+**v4.1.0 or later is required to use this event**
+
+[Please see documentation for GC interaction on the GitHub wiki.](https://github.com/DoctorMcKay/node-steam-user/wiki/Game-Coordinator)
+
+### appQuit
+- `appid`
+
+**v4.1.0 or later is required to use this event**
+
+[Please see documentation for GC interaction on the GitHub wiki.](https://github.com/DoctorMcKay/node-steam-user/wiki/Game-Coordinator)
+
+### receivedFromGC
+- `appid`
+- `msgType`
+- `payload`
+
+**v4.1.0 or later is required to use this event**
+
+[Please see documentation for GC interaction on the GitHub wiki.](https://github.com/DoctorMcKay/node-steam-user/wiki/Game-Coordinator)
